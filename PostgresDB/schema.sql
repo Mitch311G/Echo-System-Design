@@ -1,8 +1,8 @@
-DROP DATABASE IF EXISTS ratingsAndReviews;
+DROP DATABASE IF EXISTS ratingsandreviews;
 
-CREATE DATABASE ratingsAndReviews;
+CREATE DATABASE ratingsandreviews;
 
-\c ratingsAndReviews;
+\c ratingsandreviews;
 
 CREATE TABLE products(
   product_id SERIAL PRIMARY KEY,
@@ -32,6 +32,7 @@ CREATE TABLE photos (
   FOREIGN KEY (review_id) REFERENCES reviews(review_id)
 );
 
+-- this would be an agg table
 -- CREATE TABLE ratings (
 --   rating_id SERIAL PRIMARY KEY,
 --   product_id INT,
@@ -43,11 +44,12 @@ CREATE TABLE photos (
 --   FOREIGN KEY (product_id) REFERENCES products(product_id)
 -- );
 
+-- this would be an agg table
 -- CREATE TABLE recommended (
 --   recommended_id SERIAL PRIMARY KEY,
 --   product_id INT,
---   0 INT,
---   1 INT,
+--   notRecommendedCount INT,
+--   RecommendedCount INT,
 --   FOREIGN KEY (product_id) REFERENCES products(product_id)
 -- );
 
@@ -63,7 +65,6 @@ CREATE TABLE characteristicReviews (
   characteristic_id INT,
   review_id INT,
   value INT,
-  FOREIGN KEY (characteristic_id) REFERENCES characteristics(characteristic_id)
-  FOREIGN KEY (reveiw_id) REFERENCES reviews(review_id)
+  FOREIGN KEY (characteristic_id) REFERENCES characteristics(characteristic_id),
+  FOREIGN KEY (review_id) REFERENCES reviews(review_id)
 );
-
