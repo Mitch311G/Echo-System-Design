@@ -1,0 +1,14 @@
+{
+  "name": "sdc",
+  "version": "1.0.0",
+  "description": "ratings and reviews service",
+  "main": "index.js",
+  "scripts": {
+    "test": "test"
+  },
+  "author": "Mitchell Gardner",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.17.2"
+  }
+}
