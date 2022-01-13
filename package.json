@@ -4,11 +4,15 @@
   "description": "ratings and reviews service",
   "main": "index.js",
   "scripts": {
-    "test": "test"
+    "start": "nodemon server/index.js"
   },
   "author": "Mitchell Gardner",
   "license": "ISC",
   "dependencies": {
-    "express": "^4.17.2"
+    "express": "^4.17.2",
+    "pg": "^8.7.1"
+  },
+  "devDependencies": {
+    "nodemon": "^2.0.15"
   }
 }

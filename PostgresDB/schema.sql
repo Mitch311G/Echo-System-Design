@@ -6,15 +6,24 @@ CREATE DATABASE ratingsandreviews;
 
 CREATE TABLE products(
   product_id SERIAL PRIMARY KEY,
-  name VARCHAR(50)
+  name VARCHAR(50),
+  slogan VARCHAR(1000),
+  description VARCHAR(1000),
+  category VARCHAR(50),
+  default_price INT
 );
+
+COPY products
+FROM '/Users/Mitchell/Documents/Galvanize/SDC/product.csv'
+DELIMITER ','
+CSV HEADER;
 
 CREATE TABLE reviews (
   review_id SERIAL PRIMARY KEY,
   product_id INT,
   rating INT,
-  date DATE,
-  summary VARCHAR(60),
+  date VARCHAR(15),
+  summary VARCHAR(200),
   body VARCHAR(1000),
   recommend BOOLEAN,
   reported BOOLEAN,
@@ -25,12 +34,22 @@ CREATE TABLE reviews (
   FOREIGN KEY (product_id) REFERENCES products(product_id)
 );
 
+COPY reviews
+FROM '/Users/Mitchell/Documents/Galvanize/SDC/reviews.csv'
+DELIMITER ','
+CSV HEADER;
+
 CREATE TABLE photos (
   id SERIAL PRIMARY KEY,
   review_id INT,
   url VARCHAR(1000),
   FOREIGN KEY (review_id) REFERENCES reviews(review_id)
 );
+
+COPY photos
+FROM '/Users/Mitchell/Documents/Galvanize/SDC/reviews_photos.csv'
+DELIMITER ','
+CSV HEADER;
 
 -- this would be an agg table
 -- CREATE TABLE ratings (
@@ -60,6 +79,11 @@ CREATE TABLE characteristics (
   FOREIGN KEY (product_id) REFERENCES products(product_id)
 );
 
+COPY characteristics
+FROM '/Users/Mitchell/Documents/Galvanize/SDC/characteristics.csv'
+DELIMITER ','
+CSV HEADER;
+
 CREATE TABLE characteristicReviews (
   id SERIAL PRIMARY KEY,
   characteristic_id INT,
@@ -68,3 +92,8 @@ CREATE TABLE characteristicReviews (
   FOREIGN KEY (characteristic_id) REFERENCES characteristics(characteristic_id),
   FOREIGN KEY (review_id) REFERENCES reviews(review_id)
 );
+
+COPY characteristicReviews
+FROM '/Users/Mitchell/Documents/Galvanize/SDC/characteristic_reviews.csv'
+DELIMITER ','
+CSV HEADER;
