@@ -29,7 +29,7 @@ CREATE TABLE reviews (
   reported BOOLEAN,
   reviewer_name VARCHAR (50),
   reviewer_email VARCHAR (50),
-  response VARCHAR(1000),
+  response VARCHAR(1000), --might need to add default null (to avoid 'null' as string)
   helpfulness INT,
   FOREIGN KEY (product_id) REFERENCES products(product_id)
 );
