@@ -4,34 +4,19 @@ CREATE DATABASE ratingsandreviews;
 
 \c ratingsandreviews;
 
-CREATE TABLE products(
-  product_id SERIAL PRIMARY KEY,
-  name VARCHAR(50),
-  slogan VARCHAR(1000),
-  description VARCHAR(1000),
-  category VARCHAR(50),
-  default_price INT
-);
-
-COPY products
-FROM '/Users/Mitchell/Documents/Galvanize/SDC/product.csv'
-DELIMITER ','
-CSV HEADER;
-
 CREATE TABLE reviews (
   review_id SERIAL PRIMARY KEY,
   product_id INT,
   rating INT,
-  date VARCHAR(15),
+  date BIGINT,
   summary VARCHAR(200),
   body VARCHAR(1000),
   recommend BOOLEAN,
   reported BOOLEAN,
   reviewer_name VARCHAR (50),
   reviewer_email VARCHAR (50),
-  response VARCHAR(1000), --might need to add default null (to avoid 'null' as string)
-  helpfulness INT,
-  FOREIGN KEY (product_id) REFERENCES products(product_id)
+  response VARCHAR(1000) DEFAULT NULL, --might need to add default null (to avoid 'null' as string)
+  helpfulness INT
 );
 
 COPY reviews
@@ -75,8 +60,7 @@ CSV HEADER;
 CREATE TABLE characteristics (
   characteristic_id SERIAL PRIMARY KEY,
   product_id INT,
-  name VARCHAR(50),
-  FOREIGN KEY (product_id) REFERENCES products(product_id)
+  name VARCHAR(50)
 );
 
 COPY characteristics
