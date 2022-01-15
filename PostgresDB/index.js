@@ -104,6 +104,7 @@ async function getReviewMeta (req, res) {
     const queryRatingsArgs = [product_id, i];
     await pool.query(queryRatingsStirng, queryRatingsArgs)
       .then(results => response.ratings[i] = Number(results.rows[0].count))
+      .catch(err => res.status(400))
   }
 
   // recommended counts
@@ -112,10 +113,33 @@ async function getReviewMeta (req, res) {
     const queryRecommendArgs = [product_id, recommend];
     await pool.query(queryRecommendString, queryRecommendArgs)
       .then(results => response.recommended[recommend] = Number(results.rows[0].count))
+      .catch(err => res.status(400))
   }
 
   await getRecommendedCount(true);
   await getRecommendedCount(false);
+
+  // characteristics
+  async function getAvgCharReview (chartics) {
+    let allChars = {};
+    for(let chartic of chartics) {
+      const { characteristic_id, name } = chartic;
+      const queryCharReviewsString = 'SELECT AVG(value)::numeric(10,4) FROM characteristicReviews WHERE characteristic_id=$1';
+      const queryCharReviewArgs = [characteristic_id];
+      await pool.query(queryCharReviewsString, queryCharReviewArgs)
+        .then(results => allChars[name] = {id: characteristic_id, value: results.rows[0].avg})
+        .catch(err => res.status(400))
+    }
+    return allChars;
+  }
+
+  const queryCharString = 'SELECT characteristic_id, name FROM characteristics WHERE product_id=$1';
+  const queryCharArgs = [product_id]
+  await pool.query(queryCharString, queryCharArgs)
+    .then(results => getAvgCharReview(results.rows))
+    .then(allChars => response.characteristics = allChars)
+    .catch(err => res.status(400))
+
 
   res.status(200).send(response)
 
