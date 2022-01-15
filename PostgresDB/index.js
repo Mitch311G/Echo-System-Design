@@ -16,21 +16,37 @@ pool.connect((err) => {
   }
 });
 
-const getReviews = (req, res) => {
+async function getReviews (req, res) {
   const page = Number(req.query.page) || 1;
   const count = Number(req.query.count) || 5;
   const sort = req.query.sort || 'relevant';
   const product_id = req.query.product_id;
 
-  const queryStirng = `SELECT * FROM reviews WHERE product_id = ${product_id}`;
-  const queryArgs = [];
-  pool.query(queryStirng, queryArgs, (err, results) => {
-    if (err) {
-      res.status(400).send(err);
-    } else {
-      res.status(200).send(results.rows);
+  let response = {
+    product: product_id,
+    page: page,
+    count: count,
+  };
+
+  let reviews;
+
+  async function getPhotos (reviews) {
+    for(let review of reviews) {
+      const id = review.review_id;
+      const queryStirng2 = 'SELECT id, url FROM photos WHERE review_id=$1';
+      const queryArgs2 = [id]
+      await pool.query(queryStirng2, queryArgs2)
+        .then(results => review['photos'] = results.rows)
     }
-  });
+    return reviews
+  }
+
+  const queryStirng = 'SELECT * FROM reviews WHERE product_id=$1 LIMIT $2';
+  const queryArgs = [product_id, count];
+  await pool.query(queryStirng, queryArgs)
+    .then(results => getPhotos(results.rows))
+    .then(reviews => response['results'] = reviews)
+    .then(() => res.status(200).send(response))
 };
 
 const postReview = (req, res) => {
@@ -48,6 +64,9 @@ const postReview = (req, res) => {
 
 const getReviewMeta = (req, res) => {
   const product_id = req.query.product_id;
+  let response = {
+    product: product_id,
+  }
 
   const queryStirng = ``;
   const queryArgs = [];
@@ -63,8 +82,8 @@ const getReviewMeta = (req, res) => {
 const updateHelpful = (req, res) => {
   const review_id = req.params.review_id
 
-  const queryStirng = ``;
-  const queryArgs = [];
+  const queryStirng = 'UPDATE reviews SET helpfulness=helpfulness+1 WHERE review_id=$1';
+  const queryArgs = [review_id];
   pool.query(queryStirng, queryArgs, (err, results) => {
     if (err) {
       res.status(400).send(err)
@@ -77,8 +96,8 @@ const updateHelpful = (req, res) => {
 const updateReport = (req, res) => {
   const review_id = req.params.review_id
 
-  const queryStirng = ``;
-  const queryArgs = [];
+  const queryStirng = 'UPDATE reviews SET reported=true WHERE review_id=$1 ';
+  const queryArgs = [review_id];
   pool.query(queryStirng, queryArgs, (err, results) => {
     if (err) {
       res.status(400).send(err)
