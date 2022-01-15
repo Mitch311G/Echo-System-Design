@@ -15,7 +15,7 @@ CREATE TABLE reviews (
   reported BOOLEAN,
   reviewer_name VARCHAR (50),
   reviewer_email VARCHAR (50),
-  response VARCHAR(1000) DEFAULT NULL, --might need to add default null (to avoid 'null' as string)
+  response VARCHAR(1000) DEFAULT NULL,
   helpfulness INT
 );
 
@@ -81,3 +81,11 @@ COPY characteristicReviews
 FROM '/Users/Mitchell/Documents/Galvanize/SDC/characteristic_reviews.csv'
 DELIMITER ','
 CSV HEADER;
+
+-- Add indexes to frequently used constraints when querying
+CREATE INDEX reviews_product_id_index ON reviews (product_id);
+CREATE INDEX photos_review_id_index ON photos (review_id);
+CREATE INDEX reviews_rating_index ON reviews (rating);
+CREATE INDEX reviews_recommend_index ON reviews (recommend);
+CREATE INDEX characteristicReviews_characteristic_id_index ON characteristicReviews (characteristic_id);
+CREATE INDEX characteristics_product_id_index ON characteristics (product_id);
