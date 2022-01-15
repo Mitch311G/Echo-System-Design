@@ -89,15 +89,36 @@ const getReviews = (req, res) => {
 };
 
 // GET REVEIW META DATA FUNCTION
-const getReviewMeta = (req, res) => {
+async function getReviewMeta (req, res) {
   const product_id = req.query.product_id;
   let response = {
-    product: product_id,
+    product_id: product_id,
+    ratings: {},
+    recommended: {},
+    characteristics: {}
   }
 
-  const queryStirng = ``;
-  const queryArgs = [];
-  pool.query(queryStirng, queryArgs)
+  // ratings counts
+  for (let i = 1; i <= 5; i++) {
+    const queryRatingsStirng = 'SELECT COUNT(rating) FROM reviews WHERE product_id=$1 AND rating=$2';
+    const queryRatingsArgs = [product_id, i];
+    await pool.query(queryRatingsStirng, queryRatingsArgs)
+      .then(results => response.ratings[i] = Number(results.rows[0].count))
+  }
+
+  // recommended counts
+  async function getRecommendedCount (recommend) {
+    const queryRecommendString = 'SELECT COUNT(recommend) FROM reviews WHERE product_id=$1 AND recommend=$2';
+    const queryRecommendArgs = [product_id, recommend];
+    await pool.query(queryRecommendString, queryRecommendArgs)
+      .then(results => response.recommended[recommend] = Number(results.rows[0].count))
+  }
+
+  await getRecommendedCount(true);
+  await getRecommendedCount(false);
+
+  res.status(200).send(response)
+
 };
 
 // UPDATE HELPFUL FUNCTION
