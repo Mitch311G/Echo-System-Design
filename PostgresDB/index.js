@@ -37,7 +37,7 @@ const getReviews = (req, res) => {
       const queryPhotoArgs = [id]
       await pool.query(queryPhotoStirng, queryPhotoArgs)
         .then(results => review['photos'] = results.rows)
-        .catch(err => res.status(400).send(err))
+        .catch(err => res.status(400).send())
     }
     return reviews
   }
@@ -49,7 +49,7 @@ const getReviews = (req, res) => {
     .then(results => getPhotos(results.rows))
     .then(reviews => response['results'] = reviews)
     .then(() => res.status(200).send(response))
-    .catch(err => res.status(400).send(err))
+    .catch(err => res.status(400).send())
   };
 
 // POST NEW REVIEW FUNCTION
@@ -65,7 +65,7 @@ const getReviews = (req, res) => {
       const queryPhotoStirng = 'INSERT INTO photos(review_id, url) VALUES ($1, $2)'
       const queryPhotoArgs = [review_id, url]
       await pool.query(queryPhotoStirng, queryPhotoArgs)
-        .catch(err => res.status(400).send(err))
+        .catch(err => res.status(400).send())
     }
   }
 
@@ -73,24 +73,24 @@ const getReviews = (req, res) => {
   async function postChars (review_id) {
     for (let characteristic_id in characteristics) {
       let value = characteristics[characteristic_id]
-
       const queryCharString = 'INSERT INTO characteristicReviews(characteristic_id, review_id, value) VALUES($1, $2, $3)';
       const queryCharArgs = [characteristic_id, review_id, value]
       await pool.query(queryCharString, queryCharArgs)
-        .catch(err => res.status(400).send(err))
+        .catch(err => res.status(400).send())
     }
   }
 
   // post a new review
-  const queryReviewStirng = 'INSERT INTO reviews(product_id, rating, date, summary, body, recommend, reviewer_name, reviewwer_email) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING review_id';
+  const queryReviewStirng = 'INSERT INTO reviews(product_id, rating, date, summary, body, recommend, reviewer_name, reviewer_email) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING review_id';
   const queryReviewArgs = [product_id, rating, date, summary, body, recommend, name, email];
   pool.query(queryReviewStirng, queryReviewArgs)
-    .then(review_id => {
+    .then(results => {
+      const { review_id } = results.rows[0]
       postPhotos(review_id);
       postChars(review_id);
     })
-    .then(() => res.status(204).send())
-    .catch(err => res.status(400))
+    .then(() => res.status(201).send())
+    .catch(err => res.status(400).send())
 };
 
 // GET REVEIW META DATA FUNCTION
@@ -109,7 +109,7 @@ async function getReviewMeta (req, res) {
     const queryRatingsArgs = [product_id, i];
     await pool.query(queryRatingsStirng, queryRatingsArgs)
       .then(results => response.ratings[i] = Number(results.rows[0].count))
-      .catch(err => res.status(400).send(err))
+      .catch(err => res.status(400).send())
   }
 
   // recommended counts
@@ -118,7 +118,7 @@ async function getReviewMeta (req, res) {
     const queryRecommendArgs = [product_id, recommend];
     await pool.query(queryRecommendString, queryRecommendArgs)
       .then(results => response.recommended[recommend] = Number(results.rows[0].count))
-      .catch(err => res.status(400).send(err))
+      .catch(err => res.status(400).send())
   }
 
   await getRecommendedCount(true);
@@ -133,7 +133,7 @@ async function getReviewMeta (req, res) {
       const queryCharReviewArgs = [characteristic_id];
       await pool.query(queryCharReviewsString, queryCharReviewArgs)
         .then(results => allChars[name] = {id: characteristic_id, value: results.rows[0].avg})
-        .catch(err => res.status(400).send(err))
+        .catch(err => res.status(400).send())
     }
     return allChars;
   }
@@ -144,7 +144,7 @@ async function getReviewMeta (req, res) {
   await pool.query(queryCharString, queryCharArgs)
     .then(results => getAvgCharReview(results.rows))
     .then(allChars => response.characteristics = allChars)
-    .catch(err => res.status(400).send(err))
+    .catch(err => res.status(400).send())
 
 
   res.status(200).send(response)
@@ -159,7 +159,7 @@ const updateHelpful = (req, res) => {
   const queryArgs = [review_id];
   pool.query(queryStirng, queryArgs)
     .then(() => res.status(204).send())
-    .catch(err => res.status(400).send(err))
+    .catch(err => res.status(400).send())
 };
 
 // UPDATE REPORT FUNCTION
@@ -170,7 +170,7 @@ const updateReport = (req, res) => {
   const queryArgs = [review_id];
   pool.query(queryStirng, queryArgs)
     .then(() => res.status(204).send())
-    .catch(err => res.status(400).send(err))
+    .catch(err => res.status(400).send())
 };
 
 module.exports = {
