@@ -16,6 +16,7 @@ pool.connect((err) => {
   }
 });
 
+
 // GET REVIEWS FUNCTION
 const getReviews = (req, res) => {
   const page = Number(req.query.page) || 1;
@@ -35,11 +36,8 @@ const getReviews = (req, res) => {
   pool.query(queryReviewStirng, queryReviewArgs)
     .then(result => {
       const reviews = result.rows;
-
-      // create array of review_ids to prevent redundant future queries
       const review_ids = reviews.map(review => review.review_id);
 
-      // query to get photos for all reviews
       const queryPhotoString = 'SELECT * FROM photos WHERE review_id = ANY($1)';
       const queryPhotoArgs = [review_ids];
       pool.query(queryPhotoString, queryPhotoArgs)
@@ -64,22 +62,7 @@ const getReviews = (req, res) => {
         .catch(err => res.status(400).send())
     })
     .catch(err => res.status(400).send())
-  };
-
-
-  // get review photos
-  async function getPhotos (reviews) {
-    for(let review of reviews) {
-      const id = review.review_id;
-      const queryPhotoStirng = 'SELECT id, url FROM photos WHERE review_id=$1';
-      const queryPhotoArgs = [id]
-      await pool.query(queryPhotoString, queryPhotoArgs)
-        .then(results => review['photos'] = results.rows)
-        .catch(err => res.status(400).send())
-    }
-    return reviews
-  }
-
+};
 
 
 // POST NEW REVIEW FUNCTION
@@ -122,6 +105,7 @@ const getReviews = (req, res) => {
     .then(() => res.status(201).send())
     .catch(err => res.status(400).send())
 };
+
 
 // GET REVEIW META DATA FUNCTION
 async function getReviewMeta (req, res) {
@@ -181,6 +165,7 @@ async function getReviewMeta (req, res) {
 
 };
 
+
 // UPDATE HELPFUL FUNCTION
 const updateHelpful = (req, res) => {
   const review_id = req.params.review_id
@@ -192,6 +177,7 @@ const updateHelpful = (req, res) => {
     .catch(err => res.status(400).send())
 };
 
+
 // UPDATE REPORT FUNCTION
 const updateReport = (req, res) => {
   const review_id = req.params.review_id
@@ -202,6 +188,7 @@ const updateReport = (req, res) => {
     .then(() => res.status(204).send())
     .catch(err => res.status(400).send())
 };
+
 
 module.exports = {
   getReviews,
