@@ -29,28 +29,58 @@ const getReviews = (req, res) => {
     count: count,
   };
 
+  // get reviews then get photos
+  const queryReviewStirng = 'SELECT * FROM reviews WHERE product_id = $1 LIMIT $2';
+  const queryReviewArgs = [product_id, count];
+  pool.query(queryReviewStirng, queryReviewArgs)
+    .then(result => {
+      const reviews = result.rows;
+
+      // create array of review_ids to prevent redundant future queries
+      const review_ids = reviews.map(review => review.review_id);
+
+      // query to get photos for all reviews
+      const queryPhotoString = 'SELECT * FROM photos WHERE review_id = ANY($1)';
+      const queryPhotoArgs = [review_ids];
+      pool.query(queryPhotoString, queryPhotoArgs)
+        .then(result => {
+          const allPhotos = result.rows;
+
+          for (let review of reviews) {
+            review.photos = [];
+
+            for(let photo of allPhotos) {
+              if (photo.review_id === review.review_id) {
+                review.photos.push({
+                  id: photo.id,
+                  url: photo.url
+                })
+              }
+            }
+          }
+          response.results = reviews
+        })
+        .then(() => res.status(200).send(response))
+        .catch(err => res.status(400).send())
+    })
+    .catch(err => res.status(400).send())
+  };
+
+
   // get review photos
   async function getPhotos (reviews) {
     for(let review of reviews) {
       const id = review.review_id;
       const queryPhotoStirng = 'SELECT id, url FROM photos WHERE review_id=$1';
       const queryPhotoArgs = [id]
-      await pool.query(queryPhotoStirng, queryPhotoArgs)
+      await pool.query(queryPhotoString, queryPhotoArgs)
         .then(results => review['photos'] = results.rows)
         .catch(err => res.status(400).send())
     }
     return reviews
   }
 
-  // get reviews then get photos
-  const queryReviewStirng = 'SELECT * FROM reviews WHERE product_id=$1 LIMIT $2';
-  const queryReviewArgs = [product_id, count];
-  pool.query(queryReviewStirng, queryReviewArgs)
-    .then(results => getPhotos(results.rows))
-    .then(reviews => response['results'] = reviews)
-    .then(() => res.status(200).send(response))
-    .catch(err => res.status(400).send())
-  };
+
 
 // POST NEW REVIEW FUNCTION
  const postReview = (req, res) => {
