@@ -10,7 +10,7 @@ export const options = {
 };
 
 export default function () {
-  const randomProductId = (Math.random() * (5774960 - 1) + 1).toFixed(0);
+  const randomProductId = (Math.random() * (1000011 - 1) + 1).toFixed(0);
   const url = `http://localhost:3000/api/reviews/?product_id=${randomProductId}`;
 
   const res = http.get(url);
