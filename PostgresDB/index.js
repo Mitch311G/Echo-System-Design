@@ -24,6 +24,8 @@ const getReviews = (req, res) => {
   const sort = req.query.sort || 'relevant';
   const product_id = req.query.product_id;
 
+  const OFFSET = (page - 1) * count;
+
   let response = {
     product: product_id,
     page: page,
@@ -31,8 +33,8 @@ const getReviews = (req, res) => {
   };
 
   // get reviews then get photos
-  const queryReviewStirng = 'SELECT * FROM reviews WHERE product_id = $1 LIMIT $2';
-  const queryReviewArgs = [product_id, count];
+  const queryReviewStirng = 'SELECT * FROM reviews WHERE product_id = $1 ORDER BY review_id LIMIT $2 OFFSET $3';
+  const queryReviewArgs = [product_id, count, OFFSET];
   pool.query(queryReviewStirng, queryReviewArgs)
     .then(result => {
       const reviews = result.rows;
@@ -48,7 +50,7 @@ const getReviews = (req, res) => {
             review.photos = [];
 
             for(let photo of allPhotos) {
-              if (photo.review_id === review.review_id) {
+              if (photo.review_id == review.review_id) {
                 review.photos.push({
                   id: photo.id,
                   url: photo.url
