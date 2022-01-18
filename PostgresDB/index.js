@@ -18,13 +18,26 @@ pool.connect((err) => {
 
 
 // GET REVIEWS FUNCTION
-async function getReviews (req, res) {
+const getReviews = (req, res) => {
   const page = Number(req.query.page) || 1;
   const count = Number(req.query.count) || 5;
   const sort = req.query.sort || 'relevant';
   const product_id = req.query.product_id;
 
-  const OFFSET = (page - 1) * count;
+  let sortby;
+  if (sort === 'newest') {
+    sortby = 'date';
+  }
+
+  if (sort === 'helpful') {
+    sortby = 'helpfulness'
+  }
+
+  if (sort === 'relevant') {
+    sortby = 'helpfulness'
+  }
+
+  const offset = (page - 1) * count;
 
   let response = {
     product: product_id,
@@ -32,14 +45,23 @@ async function getReviews (req, res) {
     count: count,
   };
 
-  const queryReviewStirng = 'SELECT *, (select array_to_json(array_agg(row_to_json(t))) from (select id, url from photos where review_id=reviews.review_id) t) AS photos FROM reviews WHERE product_id = $1 ORDER BY review_id LIMIT $2 OFFSET $3';
-  const queryReviewArgs = [product_id, count, OFFSET];
-  await pool.query(queryReviewStirng, queryReviewArgs)
+  const queryReviewStirng = `
+    SELECT *,
+      (SELECT
+          COALESCE(json_agg(json_build_object('id', id, 'url', url)), '[]')
+      FROM photos WHERE review_id = reviews.review_id)
+    AS photos FROM reviews WHERE product_id = $1
+    ORDER BY ${sortby} DESC
+    LIMIT $2
+    OFFSET $3`;
+  const queryReviewArgs = [product_id, count, offset];
+  pool
+  .query(queryReviewStirng, queryReviewArgs)
     .then(result => {
       response.results = result.rows
     })
     .then(() => res.status(200).send(response))
-    .catch(err => res.status(400).send())
+    .catch(err => res.status(400).send(err))
 };
 
 
@@ -87,7 +109,7 @@ async function getReviews (req, res) {
 
 // GET REVEIW META DATA FUNCTION
 const getReviewMeta = (req, res) => {
-  const product_id = req.query.product_id;
+  const { product_id } = req.query;
 
   const queryString = `SELECT json_build_object(
     'product_id', ${product_id}::TEXT,
@@ -117,7 +139,7 @@ const getReviewMeta = (req, res) => {
 
 // UPDATE HELPFUL FUNCTION
 const updateHelpful = (req, res) => {
-  const review_id = req.params.review_id
+  const { review_id } = req.params;
 
   const queryStirng = 'UPDATE reviews SET helpfulness=helpfulness+1 WHERE review_id=$1';
   const queryArgs = [review_id];
@@ -129,7 +151,7 @@ const updateHelpful = (req, res) => {
 
 // UPDATE REPORT FUNCTION
 const updateReport = (req, res) => {
-  const review_id = req.params.review_id
+  const { review_id } = req.params;
 
   const queryStirng = 'UPDATE reviews SET reported=true WHERE review_id=$1 ';
   const queryArgs = [review_id];
