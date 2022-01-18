@@ -89,3 +89,23 @@ CREATE INDEX reviews_rating_index ON reviews (rating);
 CREATE INDEX reviews_recommend_index ON reviews (recommend);
 CREATE INDEX characteristicReviews_characteristic_id_index ON characteristicReviews (characteristic_id);
 CREATE INDEX characteristics_product_id_index ON characteristics (product_id);
+
+
+SELECT json_build_object(
+    'product_id', 3,
+    'ratings',
+    (SELECT json_build_object(
+      '1', (SELECT COUNT(rating) FROM reviews WHERE product_id = 3 AND rating = 1),
+      '2', (SELECT COUNT(rating) FROM reviews WHERE product_id = 3 AND rating = 2),
+      '3', (SELECT COUNT(rating) FROM reviews WHERE product_id = 3 AND rating = 3),
+      '4', (SELECT COUNT(rating) FROM reviews WHERE product_id = 3 AND rating = 4),
+      '5', (SELECT COUNT(rating) FROM reviews WHERE product_id = 3 AND rating = 5))),
+    'recommended',
+    (SELECT json_build_object(
+      '0', (SELECT COUNT(recommend) FROM reviews WHERE product_id = 3 AND recommend = 'false'),
+      '1', (SELECT COUNT(recommend) FROM reviews WHERE product_id = 3 AND recommend = 'true'))),
+    'characteristics',
+    (SELECT json_object_agg(name, json_build_object(
+      'id', characteristic_id,
+      'value', (SELECT AVG(value)::numeric(10,4) FROM characteristicReviews cr WHERE cr.characteristic_id=c.characteristic_id))) FROM characteristics c WHERE product_id = 3)
+  )
