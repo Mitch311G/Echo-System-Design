@@ -43,36 +43,6 @@ async function getReviews (req, res) {
 };
 
 
-// GET REVEIW META DATA FUNCTION
-const getReviewMeta = (req, res) => {
-  const { product_id } = req.query;
-
-  const queryString = `SELECT json_build_object(
-    'product_id', $1,
-    'ratings',
-    (SELECT json_build_object(
-      '1', (SELECT COUNT(rating) FROM reviews WHERE product_id = $1 AND rating = 1),
-      '2', (SELECT COUNT(rating) FROM reviews WHERE product_id = $1 AND rating = 2),
-      '3', (SELECT COUNT(rating) FROM reviews WHERE product_id = $1 AND rating = 3),
-      '4', (SELECT COUNT(rating) FROM reviews WHERE product_id = $1 AND rating = 4),
-      '5', (SELECT COUNT(rating) FROM reviews WHERE product_id = $1 AND rating = 5))),
-    'recommended',
-    (SELECT json_build_object(
-      '0', (SELECT COUNT(recommend) FROM reviews WHERE product_id = $1 AND recommend = 0),
-      '1', (SELECT COUNT(recommend) FROM reviews WHERE product_id = $1 AND recommend = 1))),
-    'characteristics',
-    (SELECT json_object_agg(name, json_build_object(
-      'id', characteristic_id,
-      'value', (SELECT AVG(value)::numeric(10,4) FROM characteristicReviews cr WHERE cr.characteristic_id=c.characteristic_id))) FROM characteristics c WHERE product_id = $1)
-  )`;
-  const queryArgs= [product_id];
-  pool
-    .query(queryString, queryArgs)
-    .then((result) => res.status(200).send(result.rows[0].json_build_object))
-    .catch(err => res.status(400).send())
-};
-
-
 // POST NEW REVIEW FUNCTION
  const postReview = (req, res) => {
   const { product_id, rating, summary, body, recommend, name, email, photos, characteristics } = req.body;
@@ -112,6 +82,36 @@ const getReviewMeta = (req, res) => {
     })
     .then(() => res.status(201).send())
     .catch(err => res.status(400).send())
+};
+
+
+// GET REVEIW META DATA FUNCTION
+const getReviewMeta = (req, res) => {
+  const product_id = req.query.product_id;
+
+  const queryString = `SELECT json_build_object(
+    'product_id', ${product_id}::TEXT,
+    'ratings',
+    (SELECT json_build_object(
+      '1', (SELECT COUNT(rating) FROM reviews WHERE product_id = $1 AND rating = 1),
+      '2', (SELECT COUNT(rating) FROM reviews WHERE product_id = $1 AND rating = 2),
+      '3', (SELECT COUNT(rating) FROM reviews WHERE product_id = $1 AND rating = 3),
+      '4', (SELECT COUNT(rating) FROM reviews WHERE product_id = $1 AND rating = 4),
+      '5', (SELECT COUNT(rating) FROM reviews WHERE product_id = $1 AND rating = 5))),
+    'recommended',
+    (SELECT json_build_object(
+      '0', (SELECT COUNT(recommend) FROM reviews WHERE product_id = $1 AND recommend = false),
+      '1', (SELECT COUNT(recommend) FROM reviews WHERE product_id = $1 AND recommend = true))),
+    'characteristics',
+    (SELECT json_object_agg(name, json_build_object(
+      'id', characteristic_id,
+      'value', (SELECT AVG(value)::NUMERIC(10,4)::TEXT FROM characteristicReviews cr WHERE cr.characteristic_id=c.characteristic_id))) FROM characteristics c WHERE product_id = $1)
+  )`;
+  const queryArgs= [product_id];
+  pool
+    .query(queryString, queryArgs)
+    .then((result) => res.status(200).send(result.rows[0].json_build_object))
+    .catch(err => res.status(400).send(err))
 };
 
 
