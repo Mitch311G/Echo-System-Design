@@ -61,6 +61,30 @@ FROM '/Users/Mitchell/Documents/Galvanize/SDC/characteristic_reviews.csv'
 DELIMITER ','
 CSV HEADER;
 
+-- Agg tables
+CREATE TABLE ratings AS
+SELECT product_id, rating, count(rating)
+FROM reviews
+GROUP BY product_id, rating;
+
+CREATE TABLE recommended AS
+SELECT product_id, recommend, count(recommend)
+FROM reviews
+GROUP BY product_id, recommend;
+
+CREATE TABLE agg_characteristics AS
+SELECT characteristic_id, product_id, name,
+  (SELECT AVG(value)::NUMERIC(10, 4)
+  FROM characteristicReviews cr
+  WHERE cr.characteristic_id = c.characteristic_id)
+AS values
+FROM characteristics c
+GROUP BY characteristic_id, product_id, name;
+
+ALTER TABLE ratings ADD COLUMN id SERIAL PRIMARY KEY;
+ALTER TABLE recommended ADD COLUMN id SERIAL PRIMARY KEY;
+ALTER TABLE agg_characteristics ADD PRIMARY KEY(characteristic_id);
+
 -- Adjust sequence value after inserting data from csv documents
 SELECT SETVAL('reviews_review_id_seq', (SELECT MAX(review_id) FROM reviews));
 SELECT SETVAL('photos_id_seq', (SELECT MAX(id) FROM photos));
@@ -69,8 +93,10 @@ SELECT SETVAL('characteristicReviews_id_seq', (SELECT MAX(id) FROM characteristi
 -- Add indexes to frequently used constraints when querying
 CREATE INDEX reviews_product_id_index ON reviews (product_id);
 CREATE INDEX photos_review_id_index ON photos (review_id);
-CREATE INDEX reviews_rating_index ON reviews (rating);
-CREATE INDEX reviews_recommend_index ON reviews (recommend);
+--CREATE INDEX reviews_rating_index ON reviews (rating);
+--CREATE INDEX reviews_recommend_index ON reviews (recommend);
 CREATE INDEX characteristicReviews_characteristic_id_index ON characteristicReviews (characteristic_id);
 CREATE INDEX characteristics_product_id_index ON characteristics (product_id);
-
+CREATE INDEX ratings_product_id_index ON ratings (product_id);
+CREATE INDEX recommended_product_id_index ON recommended (product_id);
+CREATE INDEX agg_characteristics_product_id_index ON agg_characteristics (product_id);
