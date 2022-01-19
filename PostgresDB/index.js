@@ -114,20 +114,14 @@ const getReviewMeta = (req, res) => {
   const queryString = `SELECT json_build_object(
     'product_id', ${product_id}::TEXT,
     'ratings',
-    (SELECT json_build_object(
-      '1', (SELECT COUNT(rating) FROM reviews WHERE product_id = $1 AND rating = 1),
-      '2', (SELECT COUNT(rating) FROM reviews WHERE product_id = $1 AND rating = 2),
-      '3', (SELECT COUNT(rating) FROM reviews WHERE product_id = $1 AND rating = 3),
-      '4', (SELECT COUNT(rating) FROM reviews WHERE product_id = $1 AND rating = 4),
-      '5', (SELECT COUNT(rating) FROM reviews WHERE product_id = $1 AND rating = 5))),
+    (SELECT json_object_agg(rating, count) FROM ratings WHERE product_id = $1),
     'recommended',
-    (SELECT json_build_object(
-      '0', (SELECT COUNT(recommend) FROM reviews WHERE product_id = $1 AND recommend = false),
-      '1', (SELECT COUNT(recommend) FROM reviews WHERE product_id = $1 AND recommend = true))),
+    (SELECT json_object_agg(recommend, count) FROM recommended WHERE product_id = $1),
     'characteristics',
     (SELECT json_object_agg(name, json_build_object(
       'id', characteristic_id,
-      'value', (SELECT AVG(value)::NUMERIC(10,4)::TEXT FROM characteristicReviews cr WHERE cr.characteristic_id=c.characteristic_id))) FROM characteristics c WHERE product_id = $1)
+      'value', values::TEXT))
+      FROM agg_characteristics WHERE product_id = $1)
   )`;
   const queryArgs= [product_id];
   pool
@@ -141,7 +135,7 @@ const getReviewMeta = (req, res) => {
 const updateHelpful = (req, res) => {
   const { review_id } = req.params;
 
-  const queryStirng = 'UPDATE reviews SET helpfulness=helpfulness+1 WHERE review_id=$1';
+  const queryStirng = 'UPDATE reviews SET helpfulness=helpfulness+1 WHERE review_id = $1';
   const queryArgs = [review_id];
   pool.query(queryStirng, queryArgs)
     .then(() => res.status(204).send())
@@ -153,7 +147,7 @@ const updateHelpful = (req, res) => {
 const updateReport = (req, res) => {
   const { review_id } = req.params;
 
-  const queryStirng = 'UPDATE reviews SET reported=true WHERE review_id=$1 ';
+  const queryStirng = 'UPDATE reviews SET reported=true WHERE review_id = $1 ';
   const queryArgs = [review_id];
   pool.query(queryStirng, queryArgs)
     .then(() => res.status(204).send())
