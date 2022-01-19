@@ -65,6 +65,30 @@ const getReviews = (req, res) => {
 };
 
 
+// GET REVEIW META DATA FUNCTION
+const getReviewMeta = (req, res) => {
+  const { product_id } = req.query;
+
+  const queryString = `SELECT json_build_object(
+    'product_id', ${product_id}::TEXT,
+    'ratings',
+    (SELECT json_object_agg(rating, count) FROM ratings WHERE product_id = $1),
+    'recommended',
+    (SELECT json_object_agg(recommend, count) FROM recommended WHERE product_id = $1),
+    'characteristics',
+    (SELECT json_object_agg(name, json_build_object(
+      'id', characteristic_id,
+      'value', values::TEXT))
+      FROM agg_characteristics WHERE product_id = $1)
+  )`;
+  const queryArgs= [product_id];
+  pool
+    .query(queryString, queryArgs)
+    .then((result) => res.status(200).send(result.rows[0].json_build_object))
+    .catch(err => res.status(400).send(err))
+};
+
+
 // POST NEW REVIEW FUNCTION
  const postReview = (req, res) => {
   const { product_id, rating, summary, body, recommend, name, email, photos, characteristics } = req.body;
@@ -107,30 +131,6 @@ const getReviews = (req, res) => {
 };
 
 
-// GET REVEIW META DATA FUNCTION
-const getReviewMeta = (req, res) => {
-  const { product_id } = req.query;
-
-  const queryString = `SELECT json_build_object(
-    'product_id', ${product_id}::TEXT,
-    'ratings',
-    (SELECT json_object_agg(rating, count) FROM ratings WHERE product_id = $1),
-    'recommended',
-    (SELECT json_object_agg(recommend, count) FROM recommended WHERE product_id = $1),
-    'characteristics',
-    (SELECT json_object_agg(name, json_build_object(
-      'id', characteristic_id,
-      'value', values::TEXT))
-      FROM agg_characteristics WHERE product_id = $1)
-  )`;
-  const queryArgs= [product_id];
-  pool
-    .query(queryString, queryArgs)
-    .then((result) => res.status(200).send(result.rows[0].json_build_object))
-    .catch(err => res.status(400).send(err))
-};
-
-
 // UPDATE HELPFUL FUNCTION
 const updateHelpful = (req, res) => {
   const { review_id } = req.params;
@@ -157,8 +157,8 @@ const updateReport = (req, res) => {
 
 module.exports = {
   getReviews,
-  postReview,
   getReviewMeta,
+  postReview,
   updateHelpful,
   updateReport
 };
