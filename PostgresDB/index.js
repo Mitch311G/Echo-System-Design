@@ -16,6 +16,7 @@ pool.connect((err) => {
   }
 });
 
+
 // GET REVIEWS FUNCTION
 const getReviews = (req, res) => {
   const page = Number(req.query.page) || 1;
@@ -23,34 +24,46 @@ const getReviews = (req, res) => {
   const sort = req.query.sort || 'relevant';
   const product_id = req.query.product_id;
 
+  let sortby;
+  if (sort === 'newest') {
+    sortby = 'date';
+  }
+
+  if (sort === 'helpful') {
+    sortby = 'helpfulness'
+  }
+
+  if (sort === 'relevant') {
+    sortby = 'helpfulness'
+  }
+
+  const offset = (page - 1) * count;
+
   let response = {
     product: product_id,
     page: page,
     count: count,
   };
 
-  // get review photos
-  async function getPhotos (reviews) {
-    for(let review of reviews) {
-      const id = review.review_id;
-      const queryPhotoStirng = 'SELECT id, url FROM photos WHERE review_id=$1';
-      const queryPhotoArgs = [id]
-      await pool.query(queryPhotoStirng, queryPhotoArgs)
-        .then(results => review['photos'] = results.rows)
-        .catch(err => res.status(400).send())
-    }
-    return reviews
-  }
-
-  // get reviews then get photos
-  const queryReviewStirng = 'SELECT * FROM reviews WHERE product_id=$1 LIMIT $2';
-  const queryReviewArgs = [product_id, count];
-  pool.query(queryReviewStirng, queryReviewArgs)
-    .then(results => getPhotos(results.rows))
-    .then(reviews => response['results'] = reviews)
+  const queryReviewStirng = `
+    SELECT *,
+      (SELECT
+          COALESCE(json_agg(json_build_object('id', id, 'url', url)), '[]')
+      FROM photos WHERE review_id = reviews.review_id)
+    AS photos FROM reviews WHERE product_id = $1
+    ORDER BY ${sortby} DESC
+    LIMIT $2
+    OFFSET $3`;
+  const queryReviewArgs = [product_id, count, offset];
+  pool
+  .query(queryReviewStirng, queryReviewArgs)
+    .then(result => {
+      response.results = result.rows
+    })
     .then(() => res.status(200).send(response))
-    .catch(err => res.status(400).send())
-  };
+    .catch(err => res.status(400).send(err))
+};
+
 
 // POST NEW REVIEW FUNCTION
  const postReview = (req, res) => {
@@ -93,85 +106,54 @@ const getReviews = (req, res) => {
     .catch(err => res.status(400).send())
 };
 
+
 // GET REVEIW META DATA FUNCTION
-async function getReviewMeta (req, res) {
-  const product_id = req.query.product_id;
-  let response = {
-    product_id: product_id,
-    ratings: {},
-    recommended: {},
-    characteristics: {}
-  }
+const getReviewMeta = (req, res) => {
+  const { product_id } = req.query;
 
-  // ratings counts
-  for (let i = 1; i <= 5; i++) {
-    const queryRatingsStirng = 'SELECT COUNT(rating) FROM reviews WHERE product_id=$1 AND rating=$2';
-    const queryRatingsArgs = [product_id, i];
-    await pool.query(queryRatingsStirng, queryRatingsArgs)
-      .then(results => response.ratings[i] = Number(results.rows[0].count))
-      .catch(err => res.status(400).send())
-  }
-
-  // recommended counts
-  async function getRecommendedCount (recommend) {
-    const queryRecommendString = 'SELECT COUNT(recommend) FROM reviews WHERE product_id=$1 AND recommend=$2';
-    const queryRecommendArgs = [product_id, recommend];
-    await pool.query(queryRecommendString, queryRecommendArgs)
-      .then(results => response.recommended[recommend] = Number(results.rows[0].count))
-      .catch(err => res.status(400).send())
-  }
-
-  await getRecommendedCount(true);
-  await getRecommendedCount(false);
-
-  // get avg characteristic rating
-  async function getAvgCharReview (chartics) {
-    let allChars = {};
-    for(let chartic of chartics) {
-      const { characteristic_id, name } = chartic;
-      const queryCharReviewsString = 'SELECT AVG(value)::numeric(10,4) FROM characteristicReviews WHERE characteristic_id=$1';
-      const queryCharReviewArgs = [characteristic_id];
-      await pool.query(queryCharReviewsString, queryCharReviewArgs)
-        .then(results => allChars[name] = {id: characteristic_id, value: results.rows[0].avg})
-        .catch(err => res.status(400).send())
-    }
-    return allChars;
-  }
-
-  // get characteristics
-  const queryCharString = 'SELECT characteristic_id, name FROM characteristics WHERE product_id=$1';
-  const queryCharArgs = [product_id]
-  await pool.query(queryCharString, queryCharArgs)
-    .then(results => getAvgCharReview(results.rows))
-    .then(allChars => response.characteristics = allChars)
-    .catch(err => res.status(400).send())
-
-
-  res.status(200).send(response)
-
+  const queryString = `SELECT json_build_object(
+    'product_id', ${product_id}::TEXT,
+    'ratings',
+    (SELECT json_object_agg(rating, count) FROM ratings WHERE product_id = $1),
+    'recommended',
+    (SELECT json_object_agg(recommend, count) FROM recommended WHERE product_id = $1),
+    'characteristics',
+    (SELECT json_object_agg(name, json_build_object(
+      'id', characteristic_id,
+      'value', values::TEXT))
+      FROM agg_characteristics WHERE product_id = $1)
+  )`;
+  const queryArgs= [product_id];
+  pool
+    .query(queryString, queryArgs)
+    .then((result) => res.status(200).send(result.rows[0].json_build_object))
+    .catch(err => res.status(400).send(err))
 };
+
 
 // UPDATE HELPFUL FUNCTION
 const updateHelpful = (req, res) => {
-  const review_id = req.params.review_id
+  const { review_id } = req.params;
 
-  const queryStirng = 'UPDATE reviews SET helpfulness=helpfulness+1 WHERE review_id=$1';
+  const queryStirng = 'UPDATE reviews SET helpfulness=helpfulness+1 WHERE review_id = $1';
   const queryArgs = [review_id];
   pool.query(queryStirng, queryArgs)
     .then(() => res.status(204).send())
     .catch(err => res.status(400).send())
 };
+
 
 // UPDATE REPORT FUNCTION
 const updateReport = (req, res) => {
-  const review_id = req.params.review_id
+  const { review_id } = req.params;
 
-  const queryStirng = 'UPDATE reviews SET reported=true WHERE review_id=$1 ';
+  const queryStirng = 'UPDATE reviews SET reported=true WHERE review_id = $1 ';
   const queryArgs = [review_id];
   pool.query(queryStirng, queryArgs)
     .then(() => res.status(204).send())
     .catch(err => res.status(400).send())
 };
+
 
 module.exports = {
   getReviews,
