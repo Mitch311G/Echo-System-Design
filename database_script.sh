@@ -2,5 +2,6 @@
 sudo apt update
 sudo apt install postgresql postgresql-contrib
 
-sudo -i -u postgres # then psql
-# OR sudo -u postgres psql to go directly into psql
+#sudo -i -u postgres then psql
+# OR to go directly into psql
+sudo -u postgres psql
