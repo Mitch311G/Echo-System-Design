@@ -1,10 +1,10 @@
 const { Pool } = require('pg');
 
 const pool = new Pool({
-  user: 'postgres',
-  host: '3.87.42.45',
+  user: 'Mitchell',
+  host: 'localhost',
   database: 'ratingsandreviews',
-  password:'password123',
+  password:'',
   port: 5432,
 });
 
@@ -23,6 +23,13 @@ const getReviews = (req, res) => {
   const count = Number(req.query.count) || 5;
   const sort = req.query.sort || 'relevant';
   const product_id = req.query.product_id;
+  const offset = (page - 1) * count;
+
+  let response = {
+    product: product_id,
+    page: page,
+    count: count,
+  };
 
   let sortby;
   if (sort === 'newest') {
@@ -37,14 +44,6 @@ const getReviews = (req, res) => {
     sortby = 'helpfulness'
   }
 
-  const offset = (page - 1) * count;
-
-  let response = {
-    product: product_id,
-    page: page,
-    count: count,
-  };
-
   const queryReviewStirng = `
     SELECT *,
       (SELECT
@@ -56,10 +55,8 @@ const getReviews = (req, res) => {
     OFFSET $3`;
   const queryReviewArgs = [product_id, count, offset];
   pool
-  .query(queryReviewStirng, queryReviewArgs)
-    .then(result => {
-      response.results = result.rows
-    })
+    .query(queryReviewStirng, queryReviewArgs)
+    .then(result => response.results = result.rows)
     .then(() => res.status(200).send(response))
     .catch(err => res.status(400).send(err))
 };
@@ -69,18 +66,19 @@ const getReviews = (req, res) => {
 const getReviewMeta = (req, res) => {
   const { product_id } = req.query;
 
-  const queryString = `SELECT json_build_object(
-    'product_id', ${product_id}::TEXT,
-    'ratings',
-    (SELECT json_object_agg(rating, count) FROM ratings WHERE product_id = $1),
-    'recommended',
-    (SELECT json_object_agg(recommend, count) FROM recommended WHERE product_id = $1),
-    'characteristics',
-    (SELECT json_object_agg(name, json_build_object(
-      'id', characteristic_id,
-      'value', values::TEXT))
-      FROM agg_characteristics WHERE product_id = $1)
-  )`;
+  const queryString = `
+    SELECT json_build_object(
+      'product_id', ${product_id}::TEXT,
+      'ratings',
+      (SELECT json_object_agg(rating, count) FROM ratings WHERE product_id = $1),
+      'recommended',
+      (SELECT json_object_agg(recommend, count) FROM recommended WHERE product_id = $1),
+      'characteristics',
+      (SELECT json_object_agg(name, json_build_object(
+        'id', characteristic_id,
+        'value', values::TEXT))
+        FROM agg_characteristics WHERE product_id = $1)
+    )`;
   const queryArgs= [product_id];
   pool
     .query(queryString, queryArgs)
@@ -93,38 +91,33 @@ const getReviewMeta = (req, res) => {
  const postReview = (req, res) => {
   const { product_id, rating, summary, body, recommend, name, email, photos, characteristics } = req.body;
   const date = Date.now();
+  const photosString = JSON.stringify(photos).split('\"').join('\'');
+  const characteristic_ids = JSON.stringify(Object.keys(characteristics)).split('\"').join('');
+  const characteristic_values = JSON.stringify(Object.values(characteristics));
 
-  // post mulitple photos
-  async function postPhotos (review_id) {
-    if (photos.length === 0) {return}
-
-    for (let url of photos) {
-      const queryPhotoStirng = 'INSERT INTO photos(review_id, url) VALUES ($1, $2)'
-      const queryPhotoArgs = [review_id, url]
-      await pool.query(queryPhotoStirng, queryPhotoArgs)
-        .catch(err => res.status(400).send())
-    }
-  }
-
-  // post mulitple characteristics
-  async function postChars (review_id) {
-    for (let characteristic_id in characteristics) {
-      let value = characteristics[characteristic_id]
-      const queryCharString = 'INSERT INTO characteristicReviews(characteristic_id, review_id, value) VALUES($1, $2, $3)';
-      const queryCharArgs = [characteristic_id, review_id, value]
-      await pool.query(queryCharString, queryCharArgs)
-        .catch(err => res.status(400).send())
-    }
-  }
-
-  // post a new review
-  const queryReviewStirng = 'INSERT INTO reviews(product_id, rating, date, summary, body, recommend, reviewer_name, reviewer_email) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING review_id';
+  const queryReviewStirng = `
+    INSERT INTO reviews(product_id, rating, date, summary, body, recommend, reviewer_name, reviewer_email)
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+    RETURNING review_id`;
   const queryReviewArgs = [product_id, rating, date, summary, body, recommend, name, email];
-  pool.query(queryReviewStirng, queryReviewArgs)
+  pool
+    .query(queryReviewStirng, queryReviewArgs)
     .then(results => {
-      const { review_id } = results.rows[0]
-      postPhotos(review_id);
-      postChars(review_id);
+      const { review_id } = results.rows[0];
+
+      const queryPhotoStirng = `INSERT INTO photos(review_id, url) VALUES ($1, unnest(ARRAY ${photosString}))`;
+      const queryPhotoArgs = [review_id];
+      pool
+        .query(queryPhotoStirng, queryPhotoArgs)
+        .catch(err => res.status(400).send())
+
+      const queryCharString = `
+        INSERT INTO characteristicReviews(characteristic_id, review_id, value)
+        VALUES(unnest(ARRAY ${characteristic_ids}), $1, unnest(ARRAY ${characteristic_values}))`;
+      const queryCharArgs = [review_id];
+      pool
+        .query(queryCharString, queryCharArgs)
+        .catch(err => res.status(400).send())
     })
     .then(() => res.status(201).send())
     .catch(err => res.status(400).send())
@@ -137,7 +130,8 @@ const updateHelpful = (req, res) => {
 
   const queryStirng = 'UPDATE reviews SET helpfulness=helpfulness+1 WHERE review_id = $1';
   const queryArgs = [review_id];
-  pool.query(queryStirng, queryArgs)
+  pool
+    .query(queryStirng, queryArgs)
     .then(() => res.status(204).send())
     .catch(err => res.status(400).send())
 };
@@ -147,9 +141,10 @@ const updateHelpful = (req, res) => {
 const updateReport = (req, res) => {
   const { review_id } = req.params;
 
-  const queryStirng = 'UPDATE reviews SET reported=true WHERE review_id = $1 ';
+  const queryStirng = 'UPDATE reviews SET reported=true WHERE review_id = $1';
   const queryArgs = [review_id];
-  pool.query(queryStirng, queryArgs)
+  pool
+    .query(queryStirng, queryArgs)
     .then(() => res.status(204).send())
     .catch(err => res.status(400).send())
 };
