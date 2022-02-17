@@ -1,9 +1,11 @@
-DROP DATABASE IF EXISTS ratingsandreviews;
+-- For Development:
+-- DROP DATABASE IF EXISTS ratingsandreviews;
 
 CREATE DATABASE ratingsandreviews;
 
 \c ratingsandreviews;
 
+-- Create reviews table
 CREATE TABLE reviews (
   review_id SERIAL PRIMARY KEY,
   product_id INT,
@@ -19,11 +21,13 @@ CREATE TABLE reviews (
   helpfulness INT
 );
 
+-- Load Reviews table
 COPY reviews
 FROM '/Users/Mitchell/Documents/Galvanize/SDC/reviews.csv'
 DELIMITER ','
 CSV HEADER;
 
+-- Create photos table
 CREATE TABLE photos (
   id SERIAL PRIMARY KEY,
   review_id INT,
@@ -31,22 +35,26 @@ CREATE TABLE photos (
   FOREIGN KEY (review_id) REFERENCES reviews(review_id)
 );
 
+-- Load photos table
 COPY photos
 FROM '/Users/Mitchell/Documents/Galvanize/SDC/reviews_photos.csv'
 DELIMITER ','
 CSV HEADER;
 
+-- Create characteristics table
 CREATE TABLE characteristics (
   characteristic_id SERIAL PRIMARY KEY,
   product_id INT,
   name VARCHAR(50)
 );
 
+-- Load characteristics table
 COPY characteristics
 FROM '/Users/Mitchell/Documents/Galvanize/SDC/characteristics.csv'
 DELIMITER ','
 CSV HEADER;
 
+-- Create charachteristicReviews table
 CREATE TABLE characteristicReviews (
   id SERIAL PRIMARY KEY,
   characteristic_id INT,
@@ -56,6 +64,7 @@ CREATE TABLE characteristicReviews (
   FOREIGN KEY (review_id) REFERENCES reviews(review_id)
 );
 
+-- Load charachteristicReviews table
 COPY characteristicReviews
 FROM '/Users/Mitchell/Documents/Galvanize/SDC/characteristic_reviews.csv'
 DELIMITER ','
