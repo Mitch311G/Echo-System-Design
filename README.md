@@ -45,7 +45,7 @@
 
 ## Provided scripts
 - `npm run start-dev`
-    - Starts the development server (default is localhost:3000), then **watches for changes and restarts the serve with updated content on file change**.
+    - Starts the development server (default is localhost:3000), then **watches for changes and restarts the server with updated content on file change**.
 - `npm run start`
     - Starts the app's server, but **does not watch for file changes**.
 ---
