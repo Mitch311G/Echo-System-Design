@@ -1,9 +1,11 @@
 <h1 align="center">Echo System Design<h1>
 
 ## Description
-***Echo System Design*** is a back end system designed, built, tested, and optimized to increase performance of a ratings and reviews micro service, belonging to a mock e-commerce website. Originally, the back end of this website was a monolithic design and needed performance improvements to handle increased web traffic. The PostgreSQL database was loaded with 31M records and queries were built using PostgreSQL functions and subqueries to decrease read/write response times. The server and API enpoints were developed using ExpressJS. The system's final design consisted of one NGINX load balancer, three EC2 micro servers, and one database server (see diagram below). Testing was performed locally using k6 and then deployed to AWS. The deployed version was tested using Loader_IO (see performance metrics in section below).
+***Echo System Design*** is a back end system designed, built, tested, and optimized to increase performance of a ratings and reviews micro service, belonging to a mock e-commerce website. Originally, the back end of this website was a monolithic design and needed performance improvements to handle increased web traffic. The PostgreSQL database was loaded with 31M records and queries were built using PostgreSQL functions and subqueries to decrease read/write response times. The server and API enpoints were developed using ExpressJS. The system's final design consisted of one NGINX load balancer server, three EC2 micro servers, and one database server (see diagram below). Testing was performed locally using k6 and then deployed to AWS. The deployed version was tested using Loader_IO (see performance metrics in section below).
 
-<!-- insert backend design here -->
+<p align="center">
+<img src="readme_assets/Echo-System-Design.svg">
+</p>
 
 ---
 ## Performance
