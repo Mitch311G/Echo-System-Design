@@ -51,7 +51,7 @@
 ---
 
 ## Author and acknowledgment
-***Echo System Design*** was written by Mitchell Gardner as a micro service. The other micro services (not in this repo) were created by teammates [Prith Jaganathan](https://github.com/prith98) and [Benjamin Cunningham](https://github.com/my-name-is-ben) to collectively and effectively tackle the entire project's requirements. To view the rest of the project, [see here](https://github.com/team-silvally).
+***Echo System Design*** was written by [Mitchell Gardner](https://github.com/Mitch311G) as a micro service. The other micro services (not in this repo) were created by teammates [Prith Jaganathan](https://github.com/prith98) and [Benjamin Cunningham](https://github.com/my-name-is-ben) to collectively and effectively tackle the entire project's requirements. To view the rest of the project, [see here](https://github.com/team-silvally).
 
 ---
 
