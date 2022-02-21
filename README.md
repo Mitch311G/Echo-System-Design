@@ -27,7 +27,7 @@
 **Make sure your system meets the requirements below before following installation**
 1. Clone this repo to your local machine:
     - `git clone https://github.com/Mitch311G/Echo-System-Design.git`
-2. Navigate the repo's root directory:
+2. Navigate to the repo's root directory:
     - `cd Echo-System-Design`
 3. Install project dependencies:
     - `npm install`
